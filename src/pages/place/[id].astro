@@ -1,0 +1,66 @@
+---
+import { Image } from 'astro:assets';
+import { actions } from 'astro:actions';
+import type { GetStaticPaths } from 'astro';
+
+import MainLayout from '../../layouts/MainLayout.astro';
+import Star from '../../components/Star.astro';
+import Availability from '../../components/Availability.astro';
+
+export const getStaticPaths = (async () => {
+  const { data } = await actions.getPlaces();
+
+  if (!data) {
+    throw new Error('No data returned from getPlaces');
+  }
+
+  return data.map((place) => ({
+    params: {
+      id: place.id,
+    },
+    props: {
+      place,
+    },
+  }));
+}) satisfies GetStaticPaths;
+
+const { id } = Astro.params;
+const { place } = Astro.props;
+const imageUrl = `/assets/images/${place.image}`;
+---
+
+<MainLayout title={place.title}>
+  <div class='grid grid-cols-2 gap-2'>
+    <div class='bg-white/80 p-5 rounded-xl'>
+      <h1 class='text-2xl font-extrabold'>#{id} - {place.title}</h1>
+      <p>{place.description}</p>
+
+      <div class='flex flex-1'>
+        {
+          Array.from({ length: +place.avg_rating }).map((_) => (
+            <Star />
+          ))
+        }
+      </div>
+
+      <Availability server:defer placeId={place.id.toString()}>
+        <p
+          slot='fallback'
+          class='bg-gray-300 mt-5 text-center rounded-xl p-2 animate-pulse'
+        >
+          Revisando...
+        </p>
+      </Availability>
+    </div>
+
+    <div>
+      <Image
+        src={imageUrl}
+        alt={place.title}
+        width='800'
+        height='800'
+        class='w-full h-96 object-cover rounded-xl'
+      />
+    </div>
+  </div>
+</MainLayout>
